@@ -5539,7 +5539,7 @@ SOKOL_GFX_API_DECL void sg_seal_image(sg_image img);
 SOKOL_GFX_API_DECL void sg_update_buffer(sg_buffer buf, const sg_range* data);
 SOKOL_GFX_API_DECL void sg_update_image(sg_image img, const sg_image_data* data);
 /* Update a subregion of a dynamic image. The destination image must be in desc->dst.image. */
-SOKOL_GFX_API_DECL void sg_update_image_region(const sg_write_image_desc* desc);
+SOKOL_GFX_API_DECL bool sg_update_image_region(const sg_write_image_desc* desc);
 SOKOL_GFX_API_DECL int sg_append_buffer(sg_buffer buf, const sg_range* data);
 SOKOL_GFX_API_DECL bool sg_query_buffer_overflow(sg_buffer buf);
 SOKOL_GFX_API_DECL bool sg_query_buffer_will_overflow(sg_buffer buf, size_t size);
@@ -5857,7 +5857,7 @@ inline void sg_write_image_transient(const sg_write_image_desc& desc) { return s
 inline void sg_write_buffer_unsealed(const sg_write_buffer_desc& desc) { return sg_write_buffer_unsealed(&desc); }
 inline void sg_write_image_unsealed(const sg_write_image_desc& desc) { return sg_write_image_unsealed(&desc); }
 inline void sg_update_image(sg_image img, const sg_image_data& data) { return sg_update_image(img, &data); }
-inline void sg_update_image_region(const sg_write_image_desc& desc) { return sg_update_image_region(&desc); }
+inline bool sg_update_image_region(const sg_write_image_desc& desc) { return sg_update_image_region(&desc); }
 inline void sg_update_buffer(sg_buffer buf_id, const sg_range& data) { return sg_update_buffer(buf_id, &data); }
 inline int sg_append_buffer(sg_buffer buf_id, const sg_range& data) { return sg_append_buffer(buf_id, &data); }
 #endif
@@ -27654,7 +27654,7 @@ SOKOL_API_IMPL void sg_update_image(sg_image img_id, const sg_image_data* data) 
     _SG_TRACE_ARGS(update_image, img_id, data);
 }
 
-SOKOL_API_IMPL void sg_update_image_region(const sg_write_image_desc* desc) {
+SOKOL_API_IMPL bool sg_update_image_region(const sg_write_image_desc* desc) {
     SOKOL_ASSERT(_sg.valid);
     SOKOL_ASSERT(desc);
     _sg_image_t* img = _sg_lookup_image(desc->dst.image.id);
@@ -27667,10 +27667,12 @@ SOKOL_API_IMPL void sg_update_image_region(const sg_write_image_desc* desc) {
             }
             _sg_update_image_region(img, &desc_def);
             img->cmn.upd_frame_index = _sg.frame_index;
+            return true;
         }
     } else {
         _SG_ERROR(UPDATE_IMAGE_REGION_IMAGE_ALIVE);
     }
+    return false;
 }
 
 SOKOL_API_IMPL void sg_write_buffer_transient(const sg_write_buffer_desc* desc) {
