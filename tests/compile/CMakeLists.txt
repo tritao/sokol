@@ -19,6 +19,12 @@ set(c_sources
     sokol_letterbox.c
     sokol_framebuffer.c
     sokol_main.c)
+
+add_executable(sokol-compiletest-gfx-prefix
+    sokol_gfx_prefix_a.c sokol_gfx_prefix_b.c sokol_gfx_prefix_main.c)
+target_include_directories(sokol-compiletest-gfx-prefix PRIVATE ../..)
+configure_c(sokol-compiletest-gfx-prefix)
+
 if (NOT ANDROID)
     set(c_sources ${c_sources} sokol_fetch.c)
 endif()
