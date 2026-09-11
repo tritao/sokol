@@ -92,6 +92,7 @@
 #define sg_pop_debug_group SOKOL_GFX_SYMBOL(sg_pop_debug_group)
 #define sg_push_debug_group SOKOL_GFX_SYMBOL(sg_push_debug_group)
 #define sg_query_backend SOKOL_GFX_SYMBOL(sg_query_backend)
+#define sg_query_api SOKOL_GFX_SYMBOL(sg_query_api)
 #define sg_query_buffer_defaults SOKOL_GFX_SYMBOL(sg_query_buffer_defaults)
 #define sg_query_buffer_desc SOKOL_GFX_SYMBOL(sg_query_buffer_desc)
 #define sg_query_buffer_info SOKOL_GFX_SYMBOL(sg_query_buffer_info)
@@ -5657,6 +5658,55 @@ typedef struct sg_desc {
     uint32_t _end_canary;
 } sg_desc;
 
+/*
+    Function table for the public graphics API. This is useful when several
+    independently compiled Sokol runtimes coexist in one process: each
+    runtime can expose its own table without requiring callers to relink
+    against a different set of sg_* symbols.
+*/
+typedef struct sg_api {
+    void (*setup)(const sg_desc* desc);
+    void (*shutdown)(void);
+    bool (*isvalid)(void);
+    void (*reset_state_cache)(void);
+    sg_backend (*query_backend)(void);
+
+    sg_buffer (*make_buffer)(const sg_buffer_desc* desc);
+    sg_image (*make_image)(const sg_image_desc* desc);
+    sg_sampler (*make_sampler)(const sg_sampler_desc* desc);
+    sg_shader (*make_shader)(const sg_shader_desc* desc);
+    sg_pipeline (*make_pipeline)(const sg_pipeline_desc* desc);
+    sg_view (*make_view)(const sg_view_desc* desc);
+    void (*destroy_buffer)(sg_buffer buffer);
+    void (*destroy_image)(sg_image image);
+    void (*destroy_sampler)(sg_sampler sampler);
+    void (*destroy_shader)(sg_shader shader);
+    void (*destroy_pipeline)(sg_pipeline pipeline);
+    void (*destroy_view)(sg_view view);
+
+    void (*begin_pass)(const sg_pass* pass);
+    void (*apply_scissor_rect)(int x, int y, int width, int height,
+                               bool origin_top_left);
+    void (*apply_pipeline)(sg_pipeline pipeline);
+    void (*apply_bindings)(const sg_bindings* bindings);
+    void (*apply_uniforms)(int ub_slot, const sg_range* data);
+    void (*draw)(int base_element, int num_elements, int num_instances);
+    void (*end_pass)(void);
+    void (*commit)(void);
+
+    void (*update_image)(sg_image image, const sg_image_data* data);
+    bool (*update_image_region)(const sg_write_image_desc* desc);
+    int (*append_buffer)(sg_buffer buffer, const sg_range* data);
+    bool (*query_buffer_overflow)(sg_buffer buffer);
+
+    sg_resource_state (*query_buffer_state)(sg_buffer buffer);
+    sg_resource_state (*query_image_state)(sg_image image);
+    sg_resource_state (*query_sampler_state)(sg_sampler sampler);
+    sg_resource_state (*query_shader_state)(sg_shader shader);
+    sg_resource_state (*query_pipeline_state)(sg_pipeline pipeline);
+    sg_resource_state (*query_view_state)(sg_view view);
+} sg_api;
+
 // setup and misc functions
 SOKOL_GFX_API_DECL void sg_setup(const sg_desc* desc);
 SOKOL_GFX_API_DECL void sg_shutdown(void);
@@ -5696,6 +5746,7 @@ SOKOL_GFX_API_DECL void sg_draw_ex(int base_element, int num_elements, int num_i
 SOKOL_GFX_API_DECL void sg_dispatch(int num_groups_x, int num_groups_y, int num_groups_z);
 SOKOL_GFX_API_DECL void sg_end_pass(void);
 SOKOL_GFX_API_DECL void sg_commit(void);
+SOKOL_GFX_API_DECL const sg_api* sg_query_api(void);
 
 // resource update functions (wip new resource update api)
 SOKOL_GFX_API_DECL void sg_write_buffer_transient(const sg_write_buffer_desc* desc);
@@ -6057,6 +6108,48 @@ inline int sg_append_buffer(sg_buffer buf_id, const sg_range& data) { return sg_
 #ifndef SOKOL_API_IMPL
     #define SOKOL_API_IMPL
 #endif
+
+static const sg_api _sg_api = {
+    sg_setup,
+    sg_shutdown,
+    sg_isvalid,
+    sg_reset_state_cache,
+    sg_query_backend,
+    sg_make_buffer,
+    sg_make_image,
+    sg_make_sampler,
+    sg_make_shader,
+    sg_make_pipeline,
+    sg_make_view,
+    sg_destroy_buffer,
+    sg_destroy_image,
+    sg_destroy_sampler,
+    sg_destroy_shader,
+    sg_destroy_pipeline,
+    sg_destroy_view,
+    sg_begin_pass,
+    sg_apply_scissor_rect,
+    sg_apply_pipeline,
+    sg_apply_bindings,
+    sg_apply_uniforms,
+    sg_draw,
+    sg_end_pass,
+    sg_commit,
+    sg_update_image,
+    sg_update_image_region,
+    sg_append_buffer,
+    sg_query_buffer_overflow,
+    sg_query_buffer_state,
+    sg_query_image_state,
+    sg_query_sampler_state,
+    sg_query_shader_state,
+    sg_query_pipeline_state,
+    sg_query_view_state,
+};
+
+SOKOL_API_IMPL const sg_api* sg_query_api(void) {
+    return &_sg_api;
+}
 #ifndef SOKOL_DEBUG
     #ifndef NDEBUG
         #define SOKOL_DEBUG
