@@ -10896,7 +10896,11 @@ _SOKOL_PRIVATE void _sg_gl_init_caps_gles3(void) {
     #endif
     _sg.features.compute = version >= 310;
     _sg.features.msaa_texture_bindings = false;
+    #if defined(_SOKOL_GL_HAS_TEXVIEWS)
     _sg.features.gl_texture_views = version >= 430;
+    #else
+    _sg.features.gl_texture_views = false;
+    #endif
     #if defined(__EMSCRIPTEN__)
     _sg.features.separate_buffer_types = true;
     #else
