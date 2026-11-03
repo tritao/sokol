@@ -11509,6 +11509,12 @@ _SOKOL_PRIVATE void _sg_gl_texstorage(const _sg_image_t* img) {
     #else
         glTexParameteri(tgt, GL_TEXTURE_MAX_LEVEL, num_mips - 1);
     #endif
+    #if defined(_SOKOL_GL_HAS_TEXSTORAGE) && defined(SOKOL_GLES3)
+        /* Some GLES drivers (Android emulator, SwiftShader) keep the default max level of 1000 on immutable
+           storage and then sample a mipmapped sampler from levels that do not exist, returning black.
+           Bind the level range explicitly. */
+        glTexParameteri(tgt, GL_TEXTURE_MAX_LEVEL, num_mips - 1);
+    #endif
     _SG_GL_CHECK_ERROR();
 }
 
